@@ -14,8 +14,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     BEGIN
     RETURN('WELCOME ' || p_name);
     END TestFunktion;
-
-
+  
   FUNCTION FindFahrzeugInBuchungTB(p_kennzeichen IN VARCHAR2)
     RETURN NUMBER
     IS achs VARCHAR2(5);
@@ -25,11 +24,12 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         FROM Buchung b
         INNER JOIN MAUTKATEGORIE m
         ON b.KATEGORIE_ID = m.KATEGORIE_ID
-        WHERE B.KENNZEICHEN = P_KENNZEICHEN;
+        WHERE B.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
               
         return 2;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
+            DBMS_OUTPUT.PUT_LINE('UNKNOWN_VEHICLE exception raised');
             raise UNKOWN_VEHICLE;
             
   
@@ -43,87 +43,146 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         SELECT  f.ACHSEN
         into  achs
         FROM Fahrzeug f
-        WHERE f.KENNZEICHEN = P_KENNZEICHEN;
+        WHERE f.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
     
         return achs;
     
         EXCEPTION 
             WHEN NO_DATA_FOUND then
                 return FindFahrzeugInBuchungTB(p_kennzeichen);   
-        
-            
-        
+         
     END FindFahrzeugInFahrzeugTB;
     
-    FUNCTION PruefeAchsAnzahl(p_achs IN NUMBER ,f_achs IN NUMBER)
-    RETURN boolean
+    FUNCTION IsManuel(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type)
+    Return boolean
     IS
-    BEGIN 
-        IF p_achs = f_achs THEN
-            return true;
-        ELSE
-              
-               return false;
-        END IF;
+    county number;
+    BEGIN
+        SELECT count(*)
+        INTO county
+        FROM BUCHUNG
+        WHERE Kennzeichen = p_kennzeichen AND B_ID = 1;
         
-    END PruefeAchsAnzahl;
+        IF county != 0 THEN
+            return true;
+        Else
+            return false;
+        END IF;      
+    END IsManuel;
+    
+    
+    FUNCTION PruefungAchszahlAV(p_achszahlFZ FAHRZEUG.ACHSEN%TYPE, p_achszahlUI FAHRZEUG.ACHSEN%TYPE)
+    Return boolean
+    IS correctAchs boolean;
+    
+    BEGIN
+    
+    IF p_achszahlFZ <= 4 THEN
+        IF p_achszahlFZ = p_achszahlUI THEN
+            correctAchs := True;
+        ELSE
+            correctAchs := False;
+        END IF;
+    ELSE
+        IF p_achszahlFZ >= p_achszahlUI THEN
+            correctAchs := TRUE;
+        ELSE
+            correctAchs := FALSE;
+        END IF;
+    END IF;
+    
+    return correctAchs;
+    
+    END PruefungAchszahlAV;
+    
+    FUNCTION PruefungAchszahlMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE)
+    Return boolean
+    IS 
+    correctAchs boolean; 
+    achszahlMK varchar2(100);
+    BEGIN
     
     
     
+    SELECT ACHSZAHL
+    INTO achszahlMK
+    FROM BUCHUNG b INNER JOIN MAUTKATEGORIE ma ON b.KATEGORIE_ID = ma.KATEGORIE_ID
+    WHERE Kennzeichen = p_kennzeichen AND B_ID = 1;
     
-  
+    case achszahlMK
+        when '= 2' then correctAchs := P_ACHSZAHL = 2;
+        when '= 3' then correctAchs := P_ACHSZAHL = 3;
+        when '= 4' then correctAchs := P_ACHSZAHL = 4;
+        when '>= 5' then correctAchs := P_ACHSZAHL >= 5;
+    end case;
+       
+    return correctAchs;
     
+    END PruefungAchszahlMV;
     
-
+    FUNCTION PruefungOffeneBuchungMV(P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE)
+    Return boolean
+    IS 
+    county number;
+        
+    BEGIN
+    
+    SELECT count(*)
+    INTO county
+    FROM BUCHUNG 
+    WHERE KENNZEICHEN = P_KENNZEICHEN AND B_ID = 1;
+    
+    IF county >= 0 THEN
+        return true;
+    ELSE 
+        return false;
+    END IF;
+    
+    END PruefungOffeneBuchungMV;
+    
     PROCEDURE BERECHNEMAUT(P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE, P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE) AS 
     v_dummy integer; 
     fID  FAHRZEUG.FZ_ID%TYPE;
     achs  FAHRZEUG.ACHSEN%TYPE;
     kz FAHRZEUG.KENNZEICHEN%TYPE;
     aut BOOLEAN;
-
+    
+    
     BEGIN 
-  /*   DBMS_OUTPUT.PUT_LINE(TestFunktion('Fabian'));So schreibst du etwas in die DBMS-Ausgabe*/
-    achs := FindFahrzeugInFahrzeugTB(P_KENNZEICHEN);
-    if PruefeAchsAnzahl(achs,P_ACHSZAHL) = TRUE then
-        DBMS_OUTPUT.PUT_LINE('Hallo');
-    else
-     raise INVALID_VEHICLE_DATA ;
-    END IF;
-    /*DBMS_OUTPUT.PUT_LINE(FindFahrzeugInFahrzeugTB(P_KENNZEICHEN)); */
-    
-  /*  SELECT f.KENNZEICHEN, f.ACHSEN
-    into kz, achs
-    FROM Fahrzeug f
-    WHERE f.KENNZEICHEN = P_KENNZEICHEN;
-
-    SELECT b.KENNZEICHEN into kz
-    FROM BUCHUNG b
-    WHERE b.KENNZEICHEN = P_KENNZEICHEN;
-
-    IF kz IS NOT NULL  THEN
-        IF achs != P_ACHSZAHL THEN
-            raise INVALID_VEHICLE_DATA;
-        ELSE 
-        raise INVALID_VEHICLE_DATA;
-
-    END IF;
-/*
-manuel
-*/
-/*
-
-    END IF;
-
-    EXCEPTION 
-    WHEN NO_DATA_FOUND then
-        raise UNKOWN_VEHICLE;
-    WHEN others then
-        raise UNKOWN_VEHICLE;
-   */
+        achs := FindFahrzeugInFahrzeugTB(P_KENNZEICHEN);
         
-    
+        IF IsManuel(P_KENNZEICHEN) = TRUE Then
             
+            DBMS_OUTPUT.PUT_LINE('Is in the manuel procedure');
+            if PruefungAchszahlMV(P_KENNZEICHEN, P_ACHSZAHL) = TRUE THEN
+                
+                if PruefungOffeneBuchungMV(P_KENNZEICHEN) != TRUE THEN
+                    DBMS_OUTPUT.PUT_LINE('Has no open booking');
+                else
+                    DBMS_OUTPUT.PUT_LINE('ALREADY_CRUISED exception raised for manuel procedure');
+                    RAISE ALREADY_CRUISED;
+                END IF;
+                
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('INVALID_VEHICLE_DATA raised for manuel procedure');
+                RAISE INVALID_VEHICLE_DATA;
+            END IF;
+            
+            
+        ELSE
+        
+            DBMS_OUTPUT.PUT_LINE('Is in the automatic procedure');
+            
+            IF PruefungAchszahlAV(achs, P_ACHSZAHL) = TRUE THEN
+                DBMS_OUTPUT.PUT_LINE('Alles fit');
+            ELSE
+                DBMS_OUTPUT.PUT_LINE('INVALID_VEHICLE_DATA raised for automatic procedure');
+                RAISE INVALID_VEHICLE_DATA;
+            END IF;
+            
+        END IF;
+        
     END BERECHNEMAUT;
 
 END maut_service;
+
