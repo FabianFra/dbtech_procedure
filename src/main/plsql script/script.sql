@@ -263,7 +263,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         kosten := ((laenge / 1000) * mautsatzJeKm) / 100;
           DBMS_OUTPUT.PUT_LINE(kosten);
         INSERT INTO MAUTERHEBUNG  (MAUT_ID,ABSCHNITTS_ID,FZG_ID,KATEGORIE_ID,BEFAHRUNGSDATUM,KOSTEN)
-        VALUES(111,P_MAUTABSCHNITT,fgID,katID,CURRENT_TIMESTAMP,kosten);
+        VALUES(1018,P_MAUTABSCHNITT,fgID,katID,CURRENT_TIMESTAMP,kosten);
     
     END BerechneKostenFuerAutomatischesVerfahren;
     
