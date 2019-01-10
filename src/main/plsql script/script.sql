@@ -2,25 +2,14 @@
 SET SERVEROUTPUT ON;
 
 CREATE OR REPLACE PACKAGE BODY maut_service IS
-    
-    /*
-    Dies ist eine Beispielfunktion, in welcher du die grobe Synthax sehen kannst. Nehme das einfach als Muster für die 
-    zu schreibenden Funktionen. Falls du eine neue Funktion hinzufügst oder diese veränderst musst du dieses Script erneut
-    ausführen.
-    */
-    FUNCTION TestFunktion(p_name IN VARCHAR2)
-    RETURN VARCHAR2
-    IS
-    BEGIN
-    RETURN('WELCOME ' || p_name);
-    END TestFunktion;
+ 
   
   FUNCTION FindFahrzeugInBuchungTB(p_kennzeichen IN VARCHAR2)
     RETURN NUMBER
-    IS achs VARCHAR2(5);
+    IS v_achs VARCHAR2(5);
     BEGIN
         SELECT  m.ACHSZAHL
-        into  achs
+        into  v_achs
         FROM Buchung b
         INNER JOIN MAUTKATEGORIE m
         ON b.KATEGORIE_ID = m.KATEGORIE_ID
@@ -37,11 +26,11 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     
     FUNCTION FindFahrzeugInFahrzeugTB(p_kennzeichen IN VARCHAR2)  
     RETURN NUMBER
-    IS achs NUMBER;
+    IS v_achs NUMBER;
     BEGIN 
         
         SELECT  f.ACHSEN
-        into  achs
+        into  v_achs
         FROM Fahrzeug f
         WHERE f.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
     
@@ -56,14 +45,14 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     FUNCTION IsManuel(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type)
     Return boolean
     IS
-    county number;
+    v_county number;
     BEGIN
         SELECT count(*)
-        INTO county
+        INTO v_county
         FROM BUCHUNG
         WHERE Kennzeichen = p_kennzeichen AND B_ID = 1;
         
-        IF county != 0 THEN
+        IF v_county != 0 THEN
             return true;
         Else
             return false;
@@ -73,15 +62,15 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     
     FUNCTION PruefungAchszahlAV(p_achszahlFZ FAHRZEUG.ACHSEN%TYPE, p_achszahlUI FAHRZEUG.ACHSEN%TYPE)
     Return boolean
-    IS correctAchs boolean;
+    IS v_correctAchs boolean;
     
     BEGIN
     
     IF p_achszahlFZ <= 4 THEN
         IF p_achszahlFZ = p_achszahlUI THEN
-            correctAchs := True;
+            v_correctAchs := True;
         ELSE
-            correctAchs := False;
+            v_correctAchs := False;
         END IF;
     ELSE
         IF p_achszahlFZ >= p_achszahlUI THEN
