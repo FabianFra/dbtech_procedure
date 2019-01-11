@@ -6,55 +6,50 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
   
   FUNCTION FindFahrzeugInBuchungTB(p_kennzeichen IN VARCHAR2)
     RETURN NUMBER
-    IS v_achs VARCHAR2(5);
+    IS v_achs VARCHAR2(5);  --warum achszahl als varchar und nicht number? --
     BEGIN
         SELECT  m.ACHSZAHL
         into  v_achs
-        FROM Buchung b
+        FROM BUCHUNG b
         INNER JOIN MAUTKATEGORIE m
         ON b.KATEGORIE_ID = m.KATEGORIE_ID
-        WHERE B.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
-              
-        return 2;
+        WHERE b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
+        /* von return 2 zu return v_achs geändert - oder soll das so? */      
+        return v_achs;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
             DBMS_OUTPUT.PUT_LINE('UNKNOWN_VEHICLE exception raised');
             raise UNKOWN_VEHICLE;
-            
-  
     END FindFahrzeugInBuchungTB;
+    
     
     FUNCTION FindFahrzeugInFahrzeugTB(p_kennzeichen IN VARCHAR2)  
     RETURN NUMBER
     IS v_achs NUMBER;
     BEGIN 
-        
         SELECT  f.ACHSEN
         into  v_achs
-        FROM Fahrzeug f
-        WHERE f.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
-    
-        return achs;
-    
+        FROM FAHRZEUG f
+        WHERE f.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
+    /* von return achs zu return v_achs geändert */
+        return v_achs;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
-                return FindFahrzeugInBuchungTB(p_kennzeichen);   
-         
+                return FindFahrzeugInBuchungTB(p_kennzeichen);       
     END FindFahrzeugInFahrzeugTB;
+    
     
     FUNCTION IsManuel(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type)
     Return boolean
-    IS
-    v_county number;
+    IS v_county number;
     BEGIN
         SELECT count(*)
         INTO v_county
         FROM BUCHUNG
-        WHERE Kennzeichen = p_kennzeichen AND B_ID = 1;
-        
+        WHERE KENNZEICHEN = p_kennzeichen AND B_ID = 1;
         IF v_county != 0 THEN
             return true;
-        Else
+        ELSE
             return false;
         END IF;      
     END IsManuel;
@@ -63,9 +58,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     FUNCTION PruefungAchszahlAV(p_achszahlFZ FAHRZEUG.ACHSEN%TYPE, p_achszahlUI FAHRZEUG.ACHSEN%TYPE)
     Return boolean
     IS v_correctAchs boolean;
-    
     BEGIN
-    
     IF p_achszahlFZ <= 4 THEN
         IF p_achszahlFZ = p_achszahlUI THEN
             v_correctAchs := True;
@@ -73,279 +66,220 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
             v_correctAchs := False;
         END IF;
     ELSE
+    /* warum unterschied erlaubt? und correctAchs zu v_cor... geändert */
         IF p_achszahlFZ >= p_achszahlUI THEN
-            correctAchs := TRUE;
+            v_correctAchs := TRUE;
         ELSE
-            correctAchs := FALSE;
+            v_correctAchs := FALSE;
         END IF;
     END IF;
-    
-    return correctAchs;
-    
+    /*zu return v_... geändert */
+    return v_correctAchs;
     END PruefungAchszahlAV;
     
-    FUNCTION PruefungAchszahlMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE)
+    
+    FUNCTION PruefungAchszahlMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type, p_achszahl FAHRZEUG.ACHSEN%TYPE)
     Return boolean
-    IS 
-    correctAchs boolean; 
-    achszahlMK varchar2(100);
+    IS v_correctAchs boolean; 
+        v_achszahlMK varchar2(100);
     BEGIN
-    
-    
-    
     SELECT ACHSZAHL
-    INTO achszahlMK
+    INTO v_achszahlMK
     FROM BUCHUNG b INNER JOIN MAUTKATEGORIE ma ON b.KATEGORIE_ID = ma.KATEGORIE_ID
-    WHERE Kennzeichen = p_kennzeichen AND B_ID = 1;
-    
-    case achszahlMK
-        when '= 2' then correctAchs := P_ACHSZAHL = 2;
-        when '= 3' then correctAchs := P_ACHSZAHL = 3;
-        when '= 4' then correctAchs := P_ACHSZAHL = 4;
-        when '>= 5' then correctAchs := P_ACHSZAHL >= 5;
+    WHERE KENNZEICHEN = p_kennzeichen AND B_ID = 1;
+    case v_achszahlMK
+        when '= 2' then v_correctAchs := p_achszahl = 2;
+        when '= 3' then v_correctAchs := p_achszahl = 3;
+        when '= 4' then v_correctAchs := p_achszahl = 4;
+        when '>= 5' then v_correctAchs := p_achszahl >= 5;
     end case;
-    
-    return correctAchs;
-    
+    return v_correctAchs;
     END PruefungAchszahlMV;
     
-    FUNCTION PruefungOffeneBuchungMV(P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE)
+    
+    FUNCTION PruefungOffeneBuchungMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE)
     Return boolean
-    IS 
-    county number;
-        
+    IS v_county number;   
     BEGIN
-    
     SELECT count(*)
-    INTO county
+    INTO v_county
     FROM BUCHUNG 
-    WHERE KENNZEICHEN = P_KENNZEICHEN AND B_ID = 1;
-    
-    IF county >= 0 THEN
+    WHERE KENNZEICHEN = p_kennzeichen AND B_ID = 1;
+    IF v_county >= 0 THEN
         return true;
     ELSE 
         return false;
     END IF;
-    
     END PruefungOffeneBuchungMV;
     
-    --
-    --
-    --
-    FUNCTION parseAchsZahl(P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE)
-    RETURN  MAUTKATEGORIE.achszahl%TYPE
-    IS 
-     r_achsen MAUTKATEGORIE.achszahl%TYPE;
+    
+    FUNCTION parseAchsZahl(p_achszahl FAHRZEUG.ACHSEN%TYPE)
+    RETURN  MAUTKATEGORIE.ACHSZAHL%TYPE
+    IS v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE;  --von r_ zu v_ geändert! --
     BEGIN
-         case P_ACHSZAHL
+        case p_achszahl
         when 4 then
-        r_achsen := '= 4';
+        v_achsen := '= 4';
         when 5 then
-        r_achsen := '>= 5';
-        
+        v_achsen := '>= 5';
         end case;
-        
-        return r_achsen;
+        return v_achsen;
     END parseAchsZahl;
     
-    FUNCTION GetMautKategorie(P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE,P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE)    
-    RETURN MAUTKATEGORIE.KATEGORIE_ID%TYPE
-   
-    IS
-    r_kat MAUTKATEGORIE.KATEGORIE_ID%TYPE;
-    t_achsen MAUTKATEGORIE.achszahl%TYPE;
     
+    FUNCTION GetMautKategorie(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE,p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE)    
+    RETURN MAUTKATEGORIE.KATEGORIE_ID%TYPE
+    IS v_kat MAUTKATEGORIE.KATEGORIE_ID%TYPE;  -- von r_kat bzw. t_achsen zu v_ geändert!
+        v_achsen MAUTKATEGORIE.achszahl%TYPE;
     BEGIN
-      t_achsen:= parseAchsZahl(P_ACHSZAHL);
-         SELECT mk.KATEGORIE_ID
-        INTO r_kat
+      v_achsen:= parseAchsZahl(p_achszahl);
+        SELECT mk.KATEGORIE_ID
+        INTO v_kat
         FROM FAHRZEUG f
         INNER JOIN MAUTKATEGORIE mk  
         ON f.SSKL_ID = mk.SSKL_ID
-        WHERE f.KENNZEICHEN = P_KENNZEICHEN AND mk.ACHSZAHL =t_achsen;
-        return r_kat;
-    
+        WHERE f.KENNZEICHEN = p_kennzeichen AND mk.ACHSZAHL =v_achsen;
+        RETURN v_kat;
     END  GetMautKategorie;
     
-    function GetMautsatzJeKm(P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE,P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE)    
+    
+    FUNCTION GetMautsatzJeKm(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE,p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE)    
     RETURN MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE
-   
-    IS
-    MautSatzJeKM MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE;
-    t_achsen MAUTKATEGORIE.achszahl%TYPE;
-    
+    IS v_MautSatzJeKM MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE;
+        v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE;  --von t_ zu v_ geändert --
     BEGIN
-       t_achsen:= parseAchsZahl(P_ACHSZAHL);
-    
-        
-        DBMS_OUTPUT.PUT_LINE(t_achsen);
-        DBMS_OUTPUT.PUT_LINE('START GetMautsatzJeKm');
+       v_achsen:= parseAchsZahl(p_achszahl);
+        -- DBMS_OUTPUT.PUT_LINE(t_achsen);  Drin lassen?!--
+        -- DBMS_OUTPUT.PUT_LINE('START GetMautsatzJeKm');  Drin lassen?! --
         SELECT mk.MAUTSATZ_JE_KM
-        INTO  MautSatzJeKM
+        INTO  v_MautSatzJeKM
         FROM FAHRZEUG f
         INNER JOIN MAUTKATEGORIE mk  
         ON f.SSKL_ID = mk.SSKL_ID
-        WHERE f.KENNZEICHEN = P_KENNZEICHEN AND mk.ACHSZAHL =t_achsen;
-        
-        return MautSatzJeKM;
-        
+        WHERE f.KENNZEICHEN = p_kennzeichen AND mk.ACHSZAHL = v_achsen;
+        RETURN v_MautSatzJeKM;
         EXCEPTION 
          WHEN NO_DATA_FOUND then
-            DBMS_OUTPUT.PUT_LINE('err ----');
-        /*WHEN OTHERS then
-            DBMS_OUTPUT.PUT_LINE('err 2');*/
-        
+            DBMS_OUTPUT.PUT_LINE('err ----'); -- soll das so? --        
     END GetMautsatzJeKm;
     
-      FUNCTION GetFzgID(P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE)
-    RETURN  FAHRZEUGGERAT.FZG_ID%TYPE  IS
-     fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
-     BEGIN
-     
-        SELECT  fg.fzg_id
-        into fgID
-        FROM FAHRZEUG f INNER JOIN FAHRZEUGGERAT fg
-        ON f.fz_id  = fg.fz_ID
-        WHERE f.KENNZEICHEN  = P_KENNZEICHEN;
     
-        return fgId;
-        
+    FUNCTION GetFzgID(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE)
+    RETURN  FAHRZEUGGERAT.FZG_ID%TYPE  
+    IS v_fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
+    BEGIN 
+        SELECT  fg.FZG_ID
+        INTO v_fgID
+        FROM FAHRZEUG f INNER JOIN FAHRZEUGGERAT fg
+        ON f.FZ_ID  = fg.FZ_ID
+        WHERE f.KENNZEICHEN  = p_kennzeichen;
+        RETURN v_fgId;
      EXCEPTION
         WHEN NO_DATA_FOUND then
         DBMS_OUTPUT.PUT_LINE('No data found');
      END GetFzgID;
     
-   FUNCTION GetAbschnittLaenge(P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE)
-    Return MAUTABSCHNITT.LAENGE%TYPE IS
-    laenge MAUTABSCHNITT.LAENGE%TYPE;
     
+    FUNCTION GetAbschnittLaenge(p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE)
+    Return MAUTABSCHNITT.LAENGE%TYPE 
+    IS v_laenge MAUTABSCHNITT.LAENGE%TYPE;
     BEGIN
-      DBMS_OUTPUT.PUT_LINE('123test');
     SELECT LAENGE
-    INTO laenge
+    INTO v_laenge
     FROM MAUTABSCHNITT
-    WHERE ABSCHNITTS_ID = P_MAUTABSCHNITT;
-    
-    return laenge;
-    
+    WHERE ABSCHNITTS_ID = p_mautabschnitt;
+    RETURN v_laenge;
     END GetAbschnittLaenge;
     
-  
+    -- Ende Funktionen ; Beginn Prozeduren --
     
-    PROCEDURE BerechneKostenFuerAutomatischesVerfahren(P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE )
-    AS
-    kosten MAUTERHEBUNG.KOSTEN%TYPE;
-   
-    mautsatzJeKm MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE;
-    laenge MAUTABSCHNITT.LAENGE%TYPE ;
-    fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
-    katID  MautKategorie.KATEGORIE_ID%TYPE;
+    
+    PROCEDURE BerechneKostenFuerAutomatischesVerfahren(p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE )
+    AS v_kosten MAUTERHEBUNG.KOSTEN%TYPE;
+        v_mautsatzJeKm MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE;
+        v_laenge MAUTABSCHNITT.LAENGE%TYPE ;
+        v_fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
+        v_katID  MautKategorie.KATEGORIE_ID%TYPE;
     BEGIN 
-    mautsatzJeKm  := GetMautsatzJeKm(P_KENNZEICHEN,P_MAUTABSCHNITT,P_ACHSZAHL);
-    laenge := GetAbschnittLaenge(P_MAUTABSCHNITT);
-    fgId := GetFzgID(P_KENNZEICHEN);
-     DBMS_OUTPUT.PUT_LINE(fgID);
-    katID := GetMautKategorie(P_KENNZEICHEN,P_MAUTABSCHNITT,P_ACHSZAHL);
-     DBMS_OUTPUT.PUT_LINE(katID);
-       /*DBMS_OUTPUT.PUT_LINE(mautsatzJeKm);
-          DBMS_OUTPUT.PUT_LINE(laenge);*/
-        kosten := ((laenge / 1000) * mautsatzJeKm) / 100;
+    v_mautsatzJeKm  := GetMautsatzJeKm(p_kennzeichen,p_mautabschnitt,p_achszahl);
+    v_laenge := GetAbschnittLaenge(p_mautabschnitt);
+    v_fgId := GetFzgID(p_kennzeichen);
+    v_katID := GetMautKategorie(p_kennzeichen,p_mautabschnitt,p_achszahl);
+    v_kosten := ((v_laenge / 1000) * v_mautsatzJeKm) / 100;
           DBMS_OUTPUT.PUT_LINE(kosten);
-        INSERT INTO MAUTERHEBUNG  (MAUT_ID,ABSCHNITTS_ID,FZG_ID,KATEGORIE_ID,BEFAHRUNGSDATUM,KOSTEN)
-        VALUES(1018,P_MAUTABSCHNITT,fgID,katID,CURRENT_TIMESTAMP,kosten);
-    
+          /* Warum Mautid = 1018? */
+    INSERT INTO MAUTERHEBUNG  (MAUT_ID, ABSCHNITTS_ID, FZG_ID,KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN)
+    VALUES(1018, p_mautabschnitt, v_fgID, v_katID, CURRENT_TIMESTAMP, v_kosten);
     END BerechneKostenFuerAutomatischesVerfahren;
     
   
-    
-    
-  
-    PROCEDURE BerechneKostenFuerManuellesVerfahren(P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE,  P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE, P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE)
-    AS 
-    kat  NUMBER;
-    buchungID  NUMBER;
-    b_ID NUMBER;
+    PROCEDURE BerechneKostenFuerManuellesVerfahren(p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE,  p_achszahl FAHRZEUG.ACHSEN%TYPE, p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE)
+    AS v_kat  NUMBER;
+        v_buchungID  NUMBER;
+        v_b_ID NUMBER;
     BEGIN
-         case P_ACHSZAHL
+         case p_achszahl
             when 4 then
-                kat:=15;
+                v_kat:=15;
                 DBMS_OUTPUT.PUT_LINE('1');
                 SELECT b.BUCHUNG_ID, b.B_ID 
-                into buchungID, b_ID  
+                INTO v_buchungID, v_b_ID  
                 FROM BUCHUNG b
-                WHERE b.KATEGORIE_ID = kat AND b.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
-                
+                WHERE b.KATEGORIE_ID = v_kat AND b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
             when 3 then 
-                kat:=14;
+                v_kat:=14;
                 DBMS_OUTPUT.PUT_LINE('2');
                 SELECT b.BUCHUNG_ID, b.B_ID
-                into buchungID, b_ID  
+                INTO v_buchungID, v_b_ID  
                 FROM BUCHUNG b
-                WHERE b.KATEGORIE_ID = kat AND b.KENNZEICHEN = P_KENNZEICHEN AND ROWNUM = 1;
+                WHERE b.KATEGORIE_ID = v_kat AND b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
             else
                 DBMS_OUTPUT.PUT_LINE('3');
                 SELECT BUCHUNG_ID, B_ID
-                into buchungID, b_ID
+                INTO v_buchungID, v_b_ID
                 FROM BUCHUNG 
-                WHERE KENNZEICHEN = P_KENNZEICHEN AND ABSCHNITTS_ID = P_MAUTABSCHNITT;
+                WHERE KENNZEICHEN = p_kennzeichen AND ABSCHNITTS_ID = p_mautabschnitt;
         end case;
-    
-        if b_ID != 1 then
+        IF v_b_ID != 1 THEN
             DBMS_OUTPUT.PUT_LINE('4');
-            raise ALREADY_CRUISED;
-            
-        else
-            DBMS_OUTPUT.PUT_LINE(buchungID);
-            UPDATE BUCHUNG SET b_id = 3, BEFAHRUNGSDATUM = CURRENT_TIMESTAMP WHERE buchung_id = buchungID AND ROWNUM = 1;
+            RAISE ALREADY_CRUISED; 
+        ELSE
+            DBMS_OUTPUT.PUT_LINE(v_buchungID);
+            UPDATE BUCHUNG SET B_ID = 3, BEFAHRUNGSDATUM = CURRENT_TIMESTAMP WHERE BUCHUNG_ID = v_buchungID AND ROWNUM = 1;
         END IF;
-        
         EXCEPTION
-        WHEN NO_DATA_FOUND then
+        WHEN NO_DATA_FOUND THEN
         DBMS_OUTPUT.PUT_LINE('No data found');
-              
     END BerechneKostenFuerManuellesVerfahren;
     
     
-    
-    
-    PROCEDURE BERECHNEMAUT(P_MAUTABSCHNITT MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, P_ACHSZAHL FAHRZEUG.ACHSEN%TYPE, P_KENNZEICHEN FAHRZEUG.KENNZEICHEN%TYPE) AS 
-    v_dummy integer; 
-    fID  FAHRZEUG.FZ_ID%TYPE;
-    achs  FAHRZEUG.ACHSEN%TYPE;
-    kz FAHRZEUG.KENNZEICHEN%TYPE;
-    aut BOOLEAN;
-    
-    
+    PROCEDURE BERECHNEMAUT(p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE, p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE) 
+    AS v_dummy INTEGER; 
+        v_fID  FAHRZEUG.FZ_ID%TYPE;
+        v_achs  FAHRZEUG.ACHSEN%TYPE;
+        v_kz FAHRZEUG.KENNZEICHEN%TYPE;
+        v_aut BOOLEAN;
     BEGIN 
-        achs := FindFahrzeugInFahrzeugTB(P_KENNZEICHEN);
-        
-        IF IsManuel(P_KENNZEICHEN) = TRUE Then
-            
+        v_achs := FindFahrzeugInFahrzeugTB(p_kennzeichen);
+        IF IsManuel(p_kennzeichen) = TRUE THEN
             DBMS_OUTPUT.PUT_LINE('Is in the manuel procedure');
-            if PruefungAchszahlMV(P_KENNZEICHEN, P_ACHSZAHL) = TRUE THEN
-                DBMS_OUTPUT.PUT_LINE('ACHZAHL is correct');   
-                BerechneKostenFuerManuellesVerfahren(P_MAUTABSCHNITT, P_ACHSZAHL, P_KENNZEICHEN);
-                
+            IF PruefungAchszahlMV(p_kennzeichen, p_achszahl) = TRUE THEN
+                DBMS_OUTPUT.PUT_LINE('Achszahl is correct');   
+                BerechneKostenFuerManuellesVerfahren(p_mautabschnitt, p_achszahl, p_kennzeichen);
             ELSE
                 DBMS_OUTPUT.PUT_LINE('INVALID_VEHICLE_DATA raised for manuel procedure');
                 RAISE INVALID_VEHICLE_DATA;
             END IF;
-            
-            
         ELSE
-        
             DBMS_OUTPUT.PUT_LINE('Is in the automatic procedure');
-            
-            IF PruefungAchszahlAV(achs, P_ACHSZAHL) = TRUE THEN
-                DBMS_OUTPUT.PUT_LINE('ACHZAHL is correct');            
-                BerechneKostenFuerAutomatischesVerfahren(P_MAUTABSCHNITT, P_KENNZEICHEN, P_ACHSZAHL);
+            IF PruefungAchszahlAV(v_achs, p_achszahl) = TRUE THEN
+                DBMS_OUTPUT.PUT_LINE('Achszahl is correct');            
+                BerechneKostenFuerAutomatischesVerfahren(p_mautabschnitt, p_kennzeichen, p_achszahl);
             ELSE
                 DBMS_OUTPUT.PUT_LINE('INVALID_VEHICLE_DATA raised for automatic procedure');
                 RAISE INVALID_VEHICLE_DATA;
             END IF;
-            
         END IF;
-        
     END BERECHNEMAUT;
 
 END maut_service;
