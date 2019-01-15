@@ -6,15 +6,15 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
   
   FUNCTION FindFahrzeugInBuchungTB(p_kennzeichen IN VARCHAR2)
     RETURN NUMBER
-    IS v_achs VARCHAR2(5);  --warum achszahl als varchar und nicht number? --
+    IS v_achs VARCHAR2(5);  
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('FindFahrzeugInBuchungTB Start');
         SELECT  m.ACHSZAHL
         into  v_achs
         FROM BUCHUNG b
         INNER JOIN MAUTKATEGORIE m
         ON b.KATEGORIE_ID = m.KATEGORIE_ID
-        WHERE b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
-        /* von return 2 zu return v_achs geändert - oder soll das so? */      
+        WHERE b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;   
         return v_achs;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
@@ -27,15 +27,15 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     RETURN NUMBER
     IS v_achs NUMBER;
     BEGIN 
+    DBMS_OUTPUT.PUT_LINE('FindFahrzeugInFahrzeugTB Start');
         SELECT  f.ACHSEN
         into  v_achs
         FROM FAHRZEUG f
         WHERE f.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;
-    /* von return achs zu return v_achs geändert */
         return v_achs;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
-                return FindFahrzeugInBuchungTB(p_kennzeichen);       
+                return FindFahrzeugInBuchungTB(p_kennzeichen);     
     END FindFahrzeugInFahrzeugTB;
     
     
@@ -43,6 +43,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     Return boolean
     IS v_county number;
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('IsManuel Start');
         SELECT count(*)
         INTO v_county
         FROM BUCHUNG
@@ -51,7 +52,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
             return true;
         ELSE
             return false;
-        END IF;      
+        END IF;    
     END IsManuel;
     
     
@@ -59,6 +60,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     Return boolean
     IS v_correctAchs boolean;
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('PruefungAchszahlAV Start');
     IF p_achszahlFZ <= 4 THEN
         IF p_achszahlFZ = p_achszahlUI THEN
             v_correctAchs := True;
@@ -66,14 +68,12 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
             v_correctAchs := False;
         END IF;
     ELSE
-    /* warum unterschied erlaubt? und correctAchs zu v_cor... geändert */
         IF p_achszahlFZ >= p_achszahlUI THEN
             v_correctAchs := TRUE;
         ELSE
             v_correctAchs := FALSE;
         END IF;
     END IF;
-    /*zu return v_... geändert */
     return v_correctAchs;
     END PruefungAchszahlAV;
     
@@ -83,6 +83,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     IS v_correctAchs boolean; 
         v_achszahlMK varchar2(100);
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('PruefungAchszahlMV Start');
     SELECT ACHSZAHL
     INTO v_achszahlMK
     FROM BUCHUNG b INNER JOIN MAUTKATEGORIE ma ON b.KATEGORIE_ID = ma.KATEGORIE_ID
@@ -101,6 +102,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     Return boolean
     IS v_county number;   
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('PruefungOffeneBuchungMV Start');
     SELECT count(*)
     INTO v_county
     FROM BUCHUNG 
@@ -115,8 +117,9 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     
     FUNCTION parseAchsZahl(p_achszahl FAHRZEUG.ACHSEN%TYPE)
     RETURN  MAUTKATEGORIE.ACHSZAHL%TYPE
-    IS v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE;  --von r_ zu v_ geändert! --
+    IS v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE; 
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('parseAchsZahl Start');
         case p_achszahl
         when 4 then
         v_achsen := '= 4';
@@ -129,9 +132,10 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     
     FUNCTION GetMautKategorie(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE,p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE)    
     RETURN MAUTKATEGORIE.KATEGORIE_ID%TYPE
-    IS v_kat MAUTKATEGORIE.KATEGORIE_ID%TYPE;  -- von r_kat bzw. t_achsen zu v_ geändert!
+    IS v_kat MAUTKATEGORIE.KATEGORIE_ID%TYPE;  
         v_achsen MAUTKATEGORIE.achszahl%TYPE;
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('GetMautKategorie Start');
       v_achsen:= parseAchsZahl(p_achszahl);
         SELECT mk.KATEGORIE_ID
         INTO v_kat
@@ -146,11 +150,10 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     FUNCTION GetMautsatzJeKm(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE,p_mautabschnitt MAUTABSCHNITT.ABSCHNITTS_ID%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE)    
     RETURN MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE
     IS v_MautSatzJeKM MAUTKATEGORIE.MAUTSATZ_JE_KM%TYPE;
-        v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE;  --von t_ zu v_ geändert --
+        v_achsen MAUTKATEGORIE.ACHSZAHL%TYPE;  
     BEGIN
-       v_achsen:= parseAchsZahl(p_achszahl);
-        -- DBMS_OUTPUT.PUT_LINE(t_achsen);  Drin lassen?!--
-        -- DBMS_OUTPUT.PUT_LINE('START GetMautsatzJeKm');  Drin lassen?! --
+    DBMS_OUTPUT.PUT_LINE('GetMautsatzJeKm Start');
+        v_achsen:= parseAchsZahl(p_achszahl);
         SELECT mk.MAUTSATZ_JE_KM
         INTO  v_MautSatzJeKM
         FROM FAHRZEUG f
@@ -160,7 +163,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         RETURN v_MautSatzJeKM;
         EXCEPTION 
          WHEN NO_DATA_FOUND then
-            DBMS_OUTPUT.PUT_LINE('err ----'); -- soll das so? --        
+            DBMS_OUTPUT.PUT_LINE('No data found');        
     END GetMautsatzJeKm;
     
     
@@ -168,6 +171,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     RETURN  FAHRZEUGGERAT.FZG_ID%TYPE  
     IS v_fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
     BEGIN 
+    DBMS_OUTPUT.PUT_LINE('GetFzgID Start');
         SELECT  fg.FZG_ID
         INTO v_fgID
         FROM FAHRZEUG f INNER JOIN FAHRZEUGGERAT fg
@@ -184,6 +188,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     Return MAUTABSCHNITT.LAENGE%TYPE 
     IS v_laenge MAUTABSCHNITT.LAENGE%TYPE;
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('GetAbschnittLaenge Start');
     SELECT LAENGE
     INTO v_laenge
     FROM MAUTABSCHNITT
@@ -201,13 +206,13 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         v_fgId  FAHRZEUGGERAT.FZG_ID%TYPE;
         v_katID  MautKategorie.KATEGORIE_ID%TYPE;
     BEGIN 
+    DBMS_OUTPUT.PUT_LINE('BerechneKostenFuerAutomatischesVerfahren Start');
     v_mautsatzJeKm  := GetMautsatzJeKm(p_kennzeichen,p_mautabschnitt,p_achszahl);
     v_laenge := GetAbschnittLaenge(p_mautabschnitt);
     v_fgId := GetFzgID(p_kennzeichen);
     v_katID := GetMautKategorie(p_kennzeichen,p_mautabschnitt,p_achszahl);
     v_kosten := ((v_laenge / 1000) * v_mautsatzJeKm) / 100;
           DBMS_OUTPUT.PUT_LINE(kosten);
-          /* Warum Mautid = 1018? */
     INSERT INTO MAUTERHEBUNG  (MAUT_ID, ABSCHNITTS_ID, FZG_ID,KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN)
     VALUES(1018, p_mautabschnitt, v_fgID, v_katID, CURRENT_TIMESTAMP, v_kosten);
     END BerechneKostenFuerAutomatischesVerfahren;
@@ -218,6 +223,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         v_buchungID  NUMBER;
         v_b_ID NUMBER;
     BEGIN
+    DBMS_OUTPUT.PUT_LINE('BerechneKostenFuerManuellesVerfahren Start');
          case p_achszahl
             when 4 then
                 v_kat:=15;
@@ -260,6 +266,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
         v_kz FAHRZEUG.KENNZEICHEN%TYPE;
         v_aut BOOLEAN;
     BEGIN 
+    DBMS_OUTPUT.PUT_LINE('BerechneMaut Start');
         v_achs := FindFahrzeugInFahrzeugTB(p_kennzeichen);
         IF IsManuel(p_kennzeichen) = TRUE THEN
             DBMS_OUTPUT.PUT_LINE('Is in the manuel procedure');
