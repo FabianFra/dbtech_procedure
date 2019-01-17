@@ -6,15 +6,22 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
   
   FUNCTION FindFahrzeugInBuchungTB(p_kennzeichen IN VARCHAR2)
     RETURN NUMBER
-    IS v_achs VARCHAR2(5);  
+    IS v_achsvar VARCHAR2(5);
+    v_achs NUMBER;
     BEGIN
     DBMS_OUTPUT.PUT_LINE('FindFahrzeugInBuchungTB Start');
         SELECT  m.ACHSZAHL
-        into  v_achs
+        into  v_achsvar
         FROM BUCHUNG b
         INNER JOIN MAUTKATEGORIE m
         ON b.KATEGORIE_ID = m.KATEGORIE_ID
-        WHERE b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1;   
+        WHERE b.KENNZEICHEN = p_kennzeichen AND ROWNUM = 1; 
+        CASE v_achsvar
+            when '= 2' then v_achs := 2;
+            when '= 3' then v_achs := 3;
+            when '= 4' then v_achs := 4;
+            when '>= 5' then v_achs := 5;
+        end case;
         return v_achs;
         EXCEPTION 
             WHEN NO_DATA_FOUND then
@@ -78,7 +85,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     END PruefungAchszahlAV;
     
     
-    FUNCTION PruefungAchszahlMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%Type, p_achszahl FAHRZEUG.ACHSEN%TYPE)
+    FUNCTION PruefungAchszahlMV(p_kennzeichen FAHRZEUG.KENNZEICHEN%TYPE, p_achszahl FAHRZEUG.ACHSEN%TYPE)
     Return boolean
     IS v_correctAchs boolean; 
         v_achszahlMK varchar2(100);
@@ -86,7 +93,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     DBMS_OUTPUT.PUT_LINE('PruefungAchszahlMV Start');
     SELECT ACHSZAHL
     INTO v_achszahlMK
-    FROM BUCHUNG b INNER JOIN MAUTKATEGORIE ma ON b.KATEGORIE_ID = ma.KATEGORIE_ID
+    FROM MAUTKATEGORIE ma INNER JOIN BUCHUNG b ON b.KATEGORIE_ID = ma.KATEGORIE_ID
     WHERE KENNZEICHEN = p_kennzeichen AND B_ID = 1;
     case v_achszahlMK
         when '= 2' then v_correctAchs := p_achszahl = 2;
@@ -212,7 +219,7 @@ CREATE OR REPLACE PACKAGE BODY maut_service IS
     v_fgId := GetFzgID(p_kennzeichen);
     v_katID := GetMautKategorie(p_kennzeichen,p_mautabschnitt,p_achszahl);
     v_kosten := ((v_laenge / 1000) * v_mautsatzJeKm) / 100;
-          DBMS_OUTPUT.PUT_LINE(kosten);
+          DBMS_OUTPUT.PUT_LINE(v_kosten);
     INSERT INTO MAUTERHEBUNG  (MAUT_ID, ABSCHNITTS_ID, FZG_ID,KATEGORIE_ID, BEFAHRUNGSDATUM, KOSTEN)
     VALUES(1018, p_mautabschnitt, v_fgID, v_katID, CURRENT_TIMESTAMP, v_kosten);
     END BerechneKostenFuerAutomatischesVerfahren;
